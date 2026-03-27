@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { getCourseCategory } from '../utils/courseMeta';
 
 export default function CourseCard({ course, onEnroll, enrolled, showEnroll = false }) {
   const navigate = useNavigate();
@@ -6,6 +7,7 @@ export default function CourseCard({ course, onEnroll, enrolled, showEnroll = fa
   const lessonCount = Number(course.lesson_count || 0);
   const learnerCount = Number(course.learner_count || 0);
   const spotlight = enrolled ? 'Enrolled' : learnerCount >= 8 ? 'Popular Cohort' : 'Open Cohort';
+  const category = getCourseCategory(course);
 
   return (
     <div className="course-card" onClick={() => navigate(`/courses/${course.id}`)}>
@@ -13,7 +15,7 @@ export default function CourseCard({ course, onEnroll, enrolled, showEnroll = fa
       <div className="course-card-content">
         <div className="course-card-topline">
           <span className={`course-card-spotlight ${enrolled ? 'course-card-spotlight-enrolled' : ''}`}>{spotlight}</span>
-          <span className="course-card-id">Course {String(course.id).padStart(2, '0')}</span>
+          <span className="course-card-id">{category}</span>
         </div>
         <h3 className="course-card-title">{course.title}</h3>
         <p className="course-card-desc">{course.description || 'No description available'}</p>

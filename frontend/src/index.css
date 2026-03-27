@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=Cinzel:wght@400;600;700&family=Great+Vibes&display=swap');
 
 /* ============================================
-   DESIGN SYSTEM — EduVerse Professional Light Theme
+   DESIGN SYSTEM — Sigverse Adaptive Theme
    ============================================ */
 
 :root {
@@ -42,6 +42,28 @@
   --transition-fast: 150ms ease;
   --transition-default: 250ms ease;
   --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html[data-theme='dark'] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #172033;
+  --bg-card: #111c30;
+  --bg-card-hover: #16233b;
+  --bg-elevated: #122036;
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-default: rgba(148, 163, 184, 0.26);
+  --border-focus: rgba(56, 189, 248, 0.32);
+  --text-primary: #e2e8f0;
+  --text-secondary: #b4c2d4;
+  --text-muted: #8ea0b7;
+  --accent-primary: #60a5fa;
+  --accent-secondary: #22d3ee;
+  --accent-gradient: linear-gradient(135deg, #60a5fa, #22d3ee, #2dd4bf);
+  --accent-glow: rgba(34, 211, 238, 0.16);
+  --shadow-sm: 0 10px 24px rgba(2, 6, 23, 0.28);
+  --shadow-md: 0 18px 42px rgba(2, 6, 23, 0.34);
+  --shadow-lg: 0 28px 60px rgba(2, 6, 23, 0.42);
+  --shadow-glow: 0 18px 44px rgba(34, 211, 238, 0.14);
 }
 
 /* ============================================
@@ -148,6 +170,9 @@ img { max-width: 100%; display: block; }
 }
 
 .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   padding: 0.5rem 0.875rem;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
@@ -165,6 +190,52 @@ img { max-width: 100%; display: block; }
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+}
+
+.brand-icon-svg,
+.logo-icon-svg {
+  color: var(--accent-primary);
+}
+
+.theme-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-default);
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.global-back-btn {
+  position: fixed;
+  top: 84px;
+  left: 1.5rem;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  color: var(--text-primary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-theme='dark'] .global-back-btn {
+  background: rgba(15, 23, 42, 0.9);
 }
 
 .user-avatar-link {
@@ -556,6 +627,7 @@ img { max-width: 100%; display: block; }
    ENROLLED COURSES
    ============================================ */
 .enrolled-list { display: flex; flex-direction: column; gap: 1rem; }
+.enrolled-card-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
 .enrolled-card {
   background: var(--bg-card);
@@ -764,6 +836,12 @@ img { max-width: 100%; display: block; }
   margin-bottom: 1rem;
 }
 
+.learning-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
 .lesson-progress-chip {
   display: inline-flex;
   align-items: center;
@@ -807,6 +885,88 @@ img { max-width: 100%; display: block; }
   margin-bottom: 1.5rem;
 }
 
+.video-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.video-card,
+.module-quiz-card,
+.approval-card,
+.role-access-card,
+.module-admin-card,
+.lesson-admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.video-card {
+  padding: 1rem;
+}
+
+.video-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.video-embed-shell {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.video-embed-shell iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.module-quiz-card {
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+}
+
+.module-quiz-head {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
+}
+
+.module-quiz-head span {
+  color: var(--text-secondary);
+}
+
+.module-quiz-form,
+.module-quiz-item,
+.module-quiz-options,
+.role-access-points,
+.approval-list,
+.module-admin-list,
+.lesson-admin-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-secondary);
+}
+
+.quiz-result {
+  margin-top: 1rem;
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
 .lesson-support-card {
   padding: 1rem 1.1rem;
   border-radius: var(--radius-lg);
@@ -841,6 +1001,83 @@ img { max-width: 100%; display: block; }
   border: 1px solid rgba(52,211,153,0.3);
   border-radius: var(--radius-md);
   font-weight: 600;
+}
+
+.lesson-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.lesson-nav .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lesson-alert-overlay {
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.lesson-alert-card {
+  background: linear-gradient(140deg, rgba(255,255,255,0.95), rgba(240,246,255,0.95));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  max-width: 520px;
+  width: calc(100% - 2.5rem);
+  display: grid;
+  gap: 1.2rem;
+  position: relative;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lesson-alert-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.16), transparent 55%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.lesson-alert-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.lesson-alert-copy h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  position: relative;
+  z-index: 1;
+}
+
+.lesson-alert-copy p {
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 1;
+}
+
+.lesson-alert-actions {
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================
@@ -912,6 +1149,10 @@ img { max-width: 100%; display: block; }
   padding: 2rem;
 }
 
+.login-card-wide {
+  max-width: 560px;
+}
+
 .login-card-inner {
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(24px);
@@ -938,6 +1179,40 @@ img { max-width: 100%; display: block; }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
+}
+
+.login-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.login-mode-btn {
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-mode-btn.active {
+  color: var(--accent-primary);
+  border-color: var(--border-focus);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.login-form {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.login-submit-btn {
+  width: 100%;
+  justify-content: center;
 }
 
 .login-kicker {
@@ -976,6 +1251,29 @@ img { max-width: 100%; display: block; }
   display: grid;
   gap: 0.75rem;
   margin-top: 1.25rem;
+}
+
+.demo-login-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.demo-login-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem;
+  text-align: left;
+  border-radius: var(--radius-md);
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid var(--border-subtle);
+}
+
+.demo-login-card span,
+.demo-login-card code {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
 }
 
 .login-trust-card {
@@ -1126,14 +1424,28 @@ select.form-input {
 
 .admin-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
   margin-bottom: 1rem;
+}
+
+.admin-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: min(100%, 340px);
+}
+
+.admin-search .form-input {
+  margin: 0;
 }
 
 /* ============================================
    INSTRUCTOR PANEL
    ============================================ */
 .instructor-courses { margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.instructor-approval-list { margin: 1rem 0 1.5rem; }
 
 .instructor-course-card {
   background: var(--bg-card);
@@ -1141,6 +1453,30 @@ select.form-input {
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: all var(--transition-default);
+}
+
+.module-admin-card,
+.lesson-admin-card {
+  padding: 1rem;
+}
+
+.module-admin-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.lesson-admin-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lesson-admin-card p {
+  margin-top: 0.25rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 .instructor-course-card:hover { border-color: var(--border-focus); }
@@ -1203,6 +1539,170 @@ select.form-input {
   gap: 0.75rem;
   margin-top: 1.5rem;
   justify-content: flex-end;
+}
+
+/* ============================================
+   CERTIFICATE
+   ============================================ */
+.certificate-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  width: min(920px, 92vw);
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.certificate-scroll {
+  max-height: 70vh;
+  overflow: auto;
+  padding: 0.5rem;
+}
+
+.certificate-sheet {
+  position: relative;
+  padding: 3rem;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(239,246,255,0.92));
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  color: #1f2937;
+}
+
+.certificate-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background-image:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.12), transparent 40%);
+  pointer-events: none;
+}
+
+.certificate-sheet::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 260px;
+  height: 80px;
+  transform: translateX(-50%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='80' viewBox='0 0 260 80'%3E%3Cpath d='M10 40c32-32 64-32 96 0s64 32 96 0' stroke='%23c7d2fe' stroke-width='2' fill='none' opacity='0.7'/%3E%3Ccircle cx='130' cy='40' r='4' fill='%2394a3b8' opacity='0.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.certificate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 2rem;
+}
+
+.certificate-brand {
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.certificate-emblem {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(20, 184, 166, 0.18));
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  color: #1d4ed8;
+}
+
+.certificate-title {
+  font-family: 'Cinzel', serif;
+  font-size: 2.2rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-subtitle {
+  text-align: center;
+  color: #64748b;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-name {
+  font-family: 'Great Vibes', cursive;
+  font-size: 3rem;
+  text-align: center;
+  color: #1d4ed8;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-body {
+  text-align: center;
+  color: #475569;
+  margin-bottom: 0.6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-course {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.certificate-date,
+.certificate-signature-block {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.certificate-date strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.certificate-signature {
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.8rem;
+  color: #1e293b;
+}
+
+.certificate-signature-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 /* ============================================
@@ -1464,6 +1964,13 @@ select.form-input {
   color: var(--text-primary);
 }
 
+.catalog-category-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
 .pagination-shell {
   display: flex;
   align-items: center;
@@ -1682,6 +2189,88 @@ select.form-input {
 
 .error-icon { font-size: 1.2rem; }
 
+.error-icon,
+.stat-icon,
+.tree-lesson-icon,
+.lesson-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-access-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.role-access-card {
+  padding: 1.4rem;
+}
+
+.role-access-icon,
+.approval-request-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.role-access-title {
+  margin: 0.9rem 0 0.6rem;
+}
+
+.role-access-point {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text-secondary);
+}
+
+.approval-card {
+  padding: 1rem 1.1rem;
+}
+
+.approval-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.approval-request-type {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.approval-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.approval-note {
+  margin-top: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+
+.approval-payload {
+  margin-top: 0.75rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  overflow: auto;
+}
+
 /* ============================================
    EMPTY STATES
    ============================================ */
@@ -1722,6 +2311,11 @@ select.form-input {
     flex-direction: column;
     align-items: stretch;
   }
+  .video-resource-grid,
+  .role-access-grid,
+  .demo-login-grid {
+    grid-template-columns: 1fr;
+  }
   .catalog-summary-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1735,6 +2329,32 @@ select.form-input {
   }
   .pagination-shell {
     align-items: stretch;
+  }
+  .global-back-btn {
+    left: 1rem;
+  }
+  .admin-toolbar,
+  .module-admin-head,
+  .lesson-admin-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lesson-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .certificate-modal {
+    padding: 1rem;
+  }
+  .certificate-sheet {
+    padding: 2rem 1.5rem;
+  }
+  .certificate-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .certificate-name {
+    font-size: 2.4rem;
   }
 }
 
@@ -1751,5 +2371,9 @@ select.form-input {
   .catalog-empty {
     padding-left: 1.1rem;
     padding-right: 1.1rem;
+  }
+  .global-back-btn {
+    top: 74px;
+    left: 0.75rem;
   }
 }

@@ -4,6 +4,7 @@ import api from '../services/api';
 
 export default function Profile() {
   const { user, setUser } = useAuth();
+  const isAdminSelfLocked = user?.role === 'admin';
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [msg, setMsg] = useState('');
@@ -37,19 +38,20 @@ export default function Profile() {
         </div>
         {msg && <div className="toast toast-success">{msg}</div>}
         <form onSubmit={handleSave} className="profile-form">
+          {isAdminSelfLocked && <div className="toast toast-error">Admin self-edit is disabled in this build.</div>}
           <div className="form-group">
             <label className="form-label">Name</label>
-            <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} required />
+            <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} required disabled={isAdminSelfLocked} />
           </div>
           <div className="form-group">
             <label className="form-label">Email</label>
-            <input type="email" className="form-input" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input type="email" className="form-input" value={email} onChange={e => setEmail(e.target.value)} required disabled={isAdminSelfLocked} />
           </div>
           <div className="form-group">
             <label className="form-label">Role</label>
             <input type="text" className="form-input" value={user?.role} disabled />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving || isAdminSelfLocked}>
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </form>

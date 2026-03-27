@@ -10,7 +10,9 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const data = await PerformanceService.getAll();
+    const data = req.user.role === 'learner'
+      ? await PerformanceService.getByUserId(req.user.sub)
+      : await PerformanceService.getAll();
     sendSuccess(res, 200, data);
   } catch (err) { next(err); }
 };

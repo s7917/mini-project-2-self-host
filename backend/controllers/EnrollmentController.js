@@ -1,8 +1,19 @@
 const EnrollmentService = require('../services/EnrollmentService');
+const UserService = require('../services/UserService');
 const { sendSuccess, sendError } = require('../utils/response');
 
 exports.create = async (req, res, next) => {
   try {
+    if (req.user.role === 'instructor') return sendError(res, 403, 'Instructors cannot enroll in courses');
+    if (req.user.role !== 'admin' && req.body.user_id !== req.user.sub) {
+      return sendError(res, 403, 'You can only enroll your own learner account');
+    }
+
+    const targetUser = await UserService.getById(req.body.user_id);
+    if (!targetUser || targetUser.role !== 'learner') {
+      return sendError(res, 403, 'Only learners can be enrolled in courses');
+    }
+
     const data = await EnrollmentService.create(req.body);
     sendSuccess(res, 201, data, 'Enrollment created');
   } catch (err) { next(err); }
@@ -10,7 +21,11 @@ exports.create = async (req, res, next) => {
 
 exports.getAll = async (req, res, next) => {
   try {
-    const data = await EnrollmentService.getAll();
+    const data = req.user.role === 'admin'
+      ? await EnrollmentService.getAll()
+      : req.user.role === 'learner'
+        ? await EnrollmentService.getByUserId(req.user.sub)
+        : [];
     sendSuccess(res, 200, data);
   } catch (err) { next(err); }
 };

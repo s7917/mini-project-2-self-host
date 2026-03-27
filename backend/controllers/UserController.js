@@ -4,7 +4,10 @@ const { sendSuccess, sendError } = require('../utils/response');
 exports.getAll = async (req, res, next) => {
   try {
     const data = await UserService.getAll();
-    sendSuccess(res, 200, data);
+    const filtered = req.user.role === 'admin'
+      ? data.filter((item) => item.id !== req.user.sub)
+      : data;
+    sendSuccess(res, 200, filtered);
   } catch (err) { next(err); }
 };
 
@@ -18,6 +21,9 @@ exports.getById = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
+    if (req.user.role === 'admin' && Number(req.params.id) === req.user.sub) {
+      return sendError(res, 403, 'Admin cannot edit their own account from the admin panel');
+    }
     const data = await UserService.update(req.params.id, req.body);
     sendSuccess(res, 200, data, 'User updated');
   } catch (err) { next(err); }
@@ -25,6 +31,9 @@ exports.update = async (req, res, next) => {
 
 exports.patch = async (req, res, next) => {
   try {
+    if (req.user.role === 'admin' && Number(req.params.id) === req.user.sub) {
+      return sendError(res, 403, 'Admin cannot edit their own account from the admin panel');
+    }
     const data = await UserService.patch(req.params.id, req.body);
     sendSuccess(res, 200, data, 'User updated');
   } catch (err) { next(err); }
@@ -32,6 +41,9 @@ exports.patch = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
+    if (req.user.role === 'admin' && Number(req.params.id) === req.user.sub) {
+      return sendError(res, 403, 'Admin cannot delete their own account');
+    }
     await UserService.remove(req.params.id);
     sendSuccess(res, 200, null, 'User deleted');
   } catch (err) { next(err); }

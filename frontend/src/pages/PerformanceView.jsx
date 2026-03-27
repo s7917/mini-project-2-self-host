@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { getAllPerformance } from '../services/performanceService';
 import Pagination from '../components/Pagination';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Icon from '../components/Icon';
 
 const PERFORMANCE_PER_PAGE = 8;
 
@@ -48,14 +49,14 @@ export default function PerformanceView() {
       </div>
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="stat-card stat-card-score">
-          <div className="stat-icon">🏆</div>
+          <div className="stat-icon"><Icon name="certificate" size={22} /></div>
           <div className="stat-info">
             <span className="stat-value">{avgScore}</span>
             <span className="stat-label">Average Score</span>
           </div>
         </div>
         <div className="stat-card stat-card-courses">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon"><Icon name="performance" size={22} /></div>
           <div className="stat-info">
             <span className="stat-value">{records.length}</span>
             <span className="stat-label">Assessments</span>

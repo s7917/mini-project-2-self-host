@@ -6,6 +6,7 @@ import CourseCard from '../components/CourseCard';
 import Pagination from '../components/Pagination';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import { getCourseCategories, getCourseCategory } from '../utils/courseMeta';
 
 const COURSES_PER_PAGE = 9;
 
@@ -16,8 +17,10 @@ export default function CourseList() {
   const [msg, setMsg] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [currentPage, setCurrentPage] = useState(1);
   const deferredSearch = useDeferredValue(searchValue.trim().toLowerCase());
+  const categories = getCourseCategories(courses);
 
   useEffect(() => {
     if (!user) return;
@@ -46,13 +49,15 @@ export default function CourseList() {
     const searchTarget = `${course.title} ${course.description || ''} ${course.instructor_name || ''}`.toLowerCase();
     const matchesSearch = !deferredSearch || searchTarget.includes(deferredSearch);
     const isEnrolled = enrolledIds.includes(course.id);
-    const matchesFilter = (
+    const matchesEnrollmentFilter = user?.role !== 'learner' || (
       viewFilter === 'all' ||
       (viewFilter === 'enrolled' && isEnrolled) ||
       (viewFilter === 'available' && !isEnrolled)
     );
+    const category = getCourseCategory(course);
+    const matchesCategory = categoryFilter === 'All Categories' || category === categoryFilter;
 
-    return matchesSearch && matchesFilter;
+    return matchesSearch && matchesEnrollmentFilter && matchesCategory;
   });
 
   const summary = {
@@ -62,7 +67,7 @@ export default function CourseList() {
     learners: visibleCourses.reduce((sum, course) => sum + Number(course.learner_count || 0), 0)
   };
   const hasCatalogError = Boolean(error);
-  const hasSearchFilters = deferredSearch.length > 0 || viewFilter !== 'all';
+  const hasSearchFilters = deferredSearch.length > 0 || viewFilter !== 'all' || categoryFilter !== 'All Categories';
   const shouldShowFilteredEmptyState = !hasCatalogError && courses.length > 0 && visibleCourses.length === 0;
   const shouldShowCatalogEmptyState = !hasCatalogError && courses.length === 0;
   const totalPages = Math.max(1, Math.ceil(visibleCourses.length / COURSES_PER_PAGE));
@@ -73,7 +78,7 @@ export default function CourseList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [deferredSearch, viewFilter]);
+  }, [deferredSearch, viewFilter, categoryFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -122,22 +127,36 @@ export default function CourseList() {
             onChange={(event) => setSearchValue(event.target.value)}
           />
         </label>
-        <div className="catalog-filters">
-          {[
-            { key: 'all', label: 'All Courses' },
-            { key: 'available', label: 'Open to Enroll' },
-            { key: 'enrolled', label: 'Already Enrolled' }
-          ].map(filter => (
-            <button
-              key={filter.key}
-              type="button"
-              className={`catalog-filter-btn ${viewFilter === filter.key ? 'active' : ''}`}
-              onClick={() => setViewFilter(filter.key)}
-            >
-              {filter.label}
-            </button>
-          ))}
-        </div>
+        {user?.role === 'learner' && (
+          <div className="catalog-filters">
+            {[
+              { key: 'all', label: 'All Courses' },
+              { key: 'available', label: 'Open to Enroll' },
+              { key: 'enrolled', label: 'Already Enrolled' }
+            ].map(filter => (
+              <button
+                key={filter.key}
+                type="button"
+                className={`catalog-filter-btn ${viewFilter === filter.key ? 'active' : ''}`}
+                onClick={() => setViewFilter(filter.key)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+      <section className="catalog-category-row">
+        {categories.map((category) => (
+          <button
+            key={category}
+            type="button"
+            className={`catalog-filter-btn ${categoryFilter === category ? 'active' : ''}`}
+            onClick={() => setCategoryFilter(category)}
+          >
+            {category}
+          </button>
+        ))}
       </section>
 
       {msg && <div className={`toast ${msg.includes('fail') ? 'toast-error' : 'toast-success'}`}>{msg}</div>}

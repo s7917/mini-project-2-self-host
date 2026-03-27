@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import BackButton from './components/BackButton';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
@@ -12,15 +13,18 @@ import PerformanceView from './pages/PerformanceView';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
 import InstructorPanel from './pages/InstructorPanel';
+import RoleAccessPage from './pages/RoleAccessPage';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
+      <BackButton />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/access" element={<ProtectedRoute><RoleAccessPage /></ProtectedRoute>} />
         <Route path="/courses" element={<ProtectedRoute><CourseList /></ProtectedRoute>} />
         <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
         <Route path="/my-courses" element={<ProtectedRoute allowedRoles={['learner']}><EnrolledCourses /></ProtectedRoute>} />

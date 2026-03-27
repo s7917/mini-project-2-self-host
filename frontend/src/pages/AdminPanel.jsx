@@ -1,59 +1,149 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Pagination from '../components/Pagination';
+import Icon from '../components/Icon';
+import { approveRequest, getApprovals, rejectRequest } from '../services/approvalService';
+
+const PAGE_SIZE = 8;
 
 export default function AdminPanel() {
   const [tab, setTab] = useState('users');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [msgTone, setMsgTone] = useState('success');
   const [editModal, setEditModal] = useState(null);
+  const [searchValue, setSearchValue] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const tabs = [
-    { key: 'users', label: 'Users', icon: '👤' },
-    { key: 'courses', label: 'Courses', icon: '📚' },
-    { key: 'enrollments', label: 'Enrollments', icon: '🎯' },
+    { key: 'users', label: 'Users', icon: 'user' },
+    { key: 'courses', label: 'Courses', icon: 'courses' },
+    { key: 'enrollments', label: 'Enrollments', icon: 'enrollments' },
+    { key: 'approvals', label: 'Approvals', icon: 'shield' }
   ];
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/${tab}`);
+      const res = tab === 'approvals' ? await getApprovals() : await api.get(`/${tab}`);
       setData(res.data.data || []);
-    } catch {} finally { setLoading(false); }
+    } catch (err) {
+      setMsgTone('error');
+      setMsg(err.response?.data?.message || 'Unable to load admin data');
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchData(); }, [tab]);
+  useEffect(() => { setCurrentPage(1); }, [tab, searchValue]);
+
+  const filteredData = data.filter((item) => {
+    const haystack = Object.values(item || {}).join(' ').toLowerCase();
+    return haystack.includes(searchValue.trim().toLowerCase());
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+  const paginatedData = filteredData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const flashMessage = (text, tone = 'success') => {
+    setMsgTone(tone);
+    setMsg(text);
+    setTimeout(() => setMsg(''), 3000);
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure?')) return;
     try {
       await api.delete(`/${tab}/${id}`);
-      setMsg('Deleted successfully');
+      flashMessage('Deleted successfully');
       fetchData();
-    } catch (err) { setMsg(err.response?.data?.message || 'Delete failed'); }
-    setTimeout(() => setMsg(''), 3000);
+    } catch (err) { flashMessage(err.response?.data?.message || 'Delete failed', 'error'); }
   };
 
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    const formData = Object.fromEntries(new FormData(e.target));
-    // Convert numeric fields
-    if (formData.instructor_id) formData.instructor_id = parseInt(formData.instructor_id);
-    if (formData.user_id) formData.user_id = parseInt(formData.user_id);
-    if (formData.course_id) formData.course_id = parseInt(formData.course_id);
+  const handleSaveEdit = async (event) => {
+    event.preventDefault();
+    const formData = Object.fromEntries(new FormData(event.target));
+    if (formData.instructor_id) formData.instructor_id = parseInt(formData.instructor_id, 10);
+    if (formData.user_id) formData.user_id = parseInt(formData.user_id, 10);
+    if (formData.course_id) formData.course_id = parseInt(formData.course_id, 10);
+
     try {
       if (editModal?.id) {
         await api.patch(`/${tab}/${editModal.id}`, formData);
-        setMsg('Updated successfully');
+        flashMessage('Updated successfully');
       } else {
         await api.post(`/${tab}`, formData);
-        setMsg('Created successfully');
+        flashMessage('Created successfully');
       }
       setEditModal(null);
       fetchData();
-    } catch (err) { setMsg(err.response?.data?.message || 'Save failed'); }
-    setTimeout(() => setMsg(''), 3000);
+    } catch (err) { flashMessage(err.response?.data?.message || 'Save failed', 'error'); }
+  };
+
+  const handleApproval = async (requestId, action) => {
+    try {
+      if (action === 'approve') {
+        await approveRequest(requestId);
+        flashMessage('Request approved');
+      } else {
+        await rejectRequest(requestId);
+        flashMessage('Request rejected');
+      }
+      fetchData();
+    } catch (err) {
+      flashMessage(err.response?.data?.message || 'Approval action failed', 'error');
+    }
+  };
+
+  const getApprovalTitle = (request) => {
+    const actionLabel = {
+      create: 'Create',
+      update: 'Update',
+      delete: 'Delete'
+    }[request.action] || 'Review';
+
+    const typeLabel = {
+      instructor_signup: 'Instructor Signup',
+      course: 'Course',
+      module: 'Module',
+      lesson: 'Lesson'
+    }[request.request_type] || 'Request';
+
+    return `${actionLabel} ${typeLabel}`;
+  };
+
+  const getApprovalSummary = (request) => {
+    if (request.request_type === 'instructor_signup') {
+      const name = request.payload?.name || 'New instructor';
+      const email = request.payload?.email ? ` (${request.payload.email})` : '';
+      return `${name}${email}`;
+    }
+
+    if (request.request_type === 'course') {
+      return request.payload?.title || 'Course request pending review';
+    }
+
+    if (request.request_type === 'module') {
+      return request.payload?.module_name || 'Module request pending review';
+    }
+
+    if (request.request_type === 'lesson') {
+      return request.payload?.lesson_name || 'Lesson request pending review';
+    }
+
+    return 'Approval request pending review';
+  };
+
+  const getApprovalMeta = (request) => {
+    const createdAt = request.created_at ? new Date(request.created_at).toLocaleString() : '';
+    const requester = request.requester_id ? `Requester #${request.requester_id}` : 'Pending local signup';
+    const entity = request.entity_id ? `Entity ${String(request.entity_id)}` : 'New';
+    return `${requester} • ${entity}${createdAt ? ` • ${createdAt}` : ''}`;
   };
 
   const getColumns = () => {
@@ -90,56 +180,106 @@ export default function AdminPanel() {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Admin <span className="text-gradient">Panel</span></h1>
-        <p className="page-subtitle">Manage system resources</p>
+        <p className="page-subtitle">Manage users, courses, enrollments, and approval workflows.</p>
       </div>
-      {msg && <div className="toast toast-success">{msg}</div>}
+      {msg && <div className={`toast ${msgTone === 'error' ? 'toast-error' : 'toast-success'}`}>{msg}</div>}
       <div className="admin-tabs">
-        {tabs.map(t => (
-          <button key={t.key} className={`tab-btn ${tab === t.key ? 'active' : ''}`} onClick={() => setTab(t.key)}>
-            {t.icon} {t.label}
+        {tabs.map((tabItem) => (
+          <button key={tabItem.key} className={`tab-btn ${tab === tabItem.key ? 'active' : ''}`} onClick={() => setTab(tabItem.key)}>
+            <Icon name={tabItem.icon} size={15} />
+            <span>{tabItem.label}</span>
           </button>
         ))}
       </div>
       <div className="admin-toolbar">
-        <button className="btn btn-primary btn-sm" onClick={() => setEditModal({})}>+ Create New</button>
+        <label className="admin-search">
+          <Icon name="search" size={14} />
+          <input
+            type="search"
+            className="form-input"
+            placeholder={`Search ${tab}`}
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        </label>
+        {tab !== 'approvals' && (
+          <button className="btn btn-primary btn-sm" onClick={() => setEditModal({})}>Create New</button>
+        )}
       </div>
       {loading ? <LoadingSpinner /> : (
-        <div className="table-card">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {getColumns().map(col => <th key={col}>{col}</th>)}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(item => (
-                <tr key={item.id}>
-                  {getColumns().map(col => <td key={col}>{String(item[col] ?? '')}</td>)}
-                  <td className="actions-cell">
-                    <button className="btn btn-ghost btn-xs" onClick={() => setEditModal(item)}>Edit</button>
-                    <button className="btn btn-danger btn-xs" onClick={() => handleDelete(item.id)}>Delete</button>
-                  </td>
-                </tr>
+        <>
+          {tab === 'approvals' ? (
+            <div className="approval-list">
+              {paginatedData.length === 0 && <p className="empty-state">No approval requests found.</p>}
+              {paginatedData.map((request) => (
+                <article key={request._id} className="approval-card">
+                  <div className="approval-card-head">
+                    <div>
+                      <span className="approval-request-type">{getApprovalTitle(request)}</span>
+                      <h3>{getApprovalSummary(request)}</h3>
+                    </div>
+                    <span className={`status-badge status-${request.status}`}>{request.status}</span>
+                  </div>
+                  <p className="course-desc-sm">{getApprovalMeta(request)}</p>
+                  {request.note && request.status === 'rejected' && (
+                    <p className="approval-note">Admin note: {request.note}</p>
+                  )}
+                  <pre className="approval-payload">{JSON.stringify(request.payload || {}, null, 2)}</pre>
+                  {request.status === 'pending' && (
+                    <div className="approval-actions">
+                      <button type="button" className="btn btn-primary btn-sm" onClick={() => handleApproval(request._id, 'approve')}>Approve</button>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => handleApproval(request._id, 'reject')}>Reject</button>
+                    </div>
+                  )}
+                </article>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          ) : (
+            <div className="table-card">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    {getColumns().map((col) => <th key={col}>{col}</th>)}
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedData.map((item) => (
+                    <tr key={item.id}>
+                      {getColumns().map((col) => <td key={col}>{String(item[col] ?? '')}</td>)}
+                      <td className="actions-cell">
+                        <button className="btn btn-ghost btn-xs" onClick={() => setEditModal(item)}>Edit</button>
+                        <button className="btn btn-danger btn-xs" onClick={() => handleDelete(item.id)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemLabel={tab}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
       {editModal !== null && (
         <div className="modal-overlay" onClick={() => setEditModal(null)}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <h3>{editModal?.id ? 'Edit' : 'Create'} {tab.slice(0, -1)}</h3>
             <form onSubmit={handleSaveEdit}>
-              {getFormFields().map(f => (
-                <div key={f.name} className="form-group">
-                  <label className="form-label">{f.label}</label>
-                  {f.type === 'select' ? (
-                    <select name={f.name} className="form-input" defaultValue={editModal?.[f.name] || f.options[0]}>
-                      {f.options.map(o => <option key={o} value={o}>{o}</option>)}
+              {getFormFields().map((field) => (
+                <div key={field.name} className="form-group">
+                  <label className="form-label">{field.label}</label>
+                  {field.type === 'select' ? (
+                    <select name={field.name} className="form-input" defaultValue={editModal?.[field.name] || field.options[0]}>
+                      {field.options.map((option) => <option key={option} value={option}>{option}</option>)}
                     </select>
                   ) : (
-                    <input name={f.name} type={f.type} className="form-input" defaultValue={editModal?.[f.name] || ''} required />
+                    <input name={field.name} type={field.type} className="form-input" defaultValue={editModal?.[field.name] || ''} required />
                   )}
                 </div>
               ))}

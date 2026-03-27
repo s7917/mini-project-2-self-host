@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { getCourseById } from '../services/courseService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import Icon from '../components/Icon';
+import { getCourseCategory, getRecommendedVideos } from '../utils/courseMeta';
+import { downloadCoursePdf } from '../utils/pdf';
 
 function getLessonPreview(content) {
   if (!content) return 'Detailed lesson notes will appear here once the lesson content is available.';
@@ -11,7 +14,6 @@ function getLessonPreview(content) {
 
 export default function CourseDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,16 +31,27 @@ export default function CourseDetail() {
   const totalModules = course.modules?.length || 0;
   const totalLessons = course.modules?.reduce((sum, module) => sum + (module.lessons?.length || 0), 0) || 0;
   const learners = Number(course.learner_count || 0);
+  const category = getCourseCategory(course);
+  const featuredModule = course.modules?.[0] || null;
+  const recommendedVideos = getRecommendedVideos(course, featuredModule);
 
   return (
     <div className="page-container">
-      <button className="btn btn-ghost" onClick={() => navigate(-1)}>← Back</button>
+      {/* <button className="btn btn-ghost" onClick={() => navigate(-1)}>
+        <Icon name="back" size={14} />
+        <span>Back</span>
+      </button> */}
       <section className="course-detail-hero">
         <div className="detail-header">
           <span className="section-eyebrow">Course deep dive</span>
           <h1 className="page-title">{course.title}</h1>
+          <span className="course-card-id">{category}</span>
           <span className="detail-instructor">By {course.instructor_name || 'Instructor'}</span>
           <p className="detail-description">{course.description}</p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => downloadCoursePdf({ ...course, category })}>
+            <Icon name="download" size={14} />
+            <span>Download Course PDF</span>
+          </button>
         </div>
         <div className="course-detail-metrics">
           <div className="course-detail-metric">
@@ -53,6 +66,28 @@ export default function CourseDetail() {
             <span className="course-detail-metric-value">{learners}</span>
             <span className="course-detail-metric-label">Learners</span>
           </div>
+        </div>
+      </section>
+
+      <section className="modules-section">
+        <h2 className="section-title">Video Resources</h2>
+        <div className="video-resource-grid">
+          {recommendedVideos.map((video) => (
+            <article key={video.id || video.youtubeId} className="video-card">
+              <div className="video-card-head">
+                <Icon name="video" size={16} />
+                <span>{video.title}</span>
+              </div>
+              <div className="video-embed-shell">
+                <iframe
+                  src={video.embedUrl || `https://www.youtube.com/embed/${video.youtubeId}`}
+                  title={video.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </article>
+          ))}
         </div>
       </section>
       
@@ -72,7 +107,7 @@ export default function CourseDetail() {
                 <ul className="lesson-list">
                   {mod.lessons.map(lesson => (
                     <li key={lesson.id} className="lesson-item lesson-item-detailed">
-                      <span className="lesson-icon">📄</span>
+                      <span className="lesson-icon"><Icon name="document" size={14} /></span>
                       <div className="lesson-item-copy">
                         <span className="lesson-item-title">{lesson.lesson_name}</span>
                         <p className="lesson-item-preview">{getLessonPreview(lesson.content)}</p>

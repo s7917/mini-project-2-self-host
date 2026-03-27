@@ -6,6 +6,7 @@ import { getAllProgress } from '../services/progressService';
 import { getAllPerformance } from '../services/performanceService';
 import { getAllCourses } from '../services/courseService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Icon from '../components/Icon';
 
 function average(items, field) {
   if (items.length === 0) return 0;
@@ -52,10 +53,10 @@ function buildDashboardModel(user, courses, enrollments, progress, performance) 
       },
       actions: roleActions.instructor,
       stats: [
-        { key: 'courses-led', label: 'Courses Led', value: taughtCourses.length, icon: '🎓', tone: 'stat-card-courses' },
-        { key: 'learners', label: 'Cohort Enrollments', value: cohortEnrollments.length, icon: '👥', tone: 'stat-card-enrolled' },
-        { key: 'progress', label: 'Avg Cohort Progress', value: `${average(cohortProgress, 'completion_percentage').toFixed(1)}%`, icon: '📈', tone: 'stat-card-progress' },
-        { key: 'score', label: 'Avg Cohort Score', value: cohortPerformance.length ? average(cohortPerformance, 'score').toFixed(1) : 'N/A', icon: '🏆', tone: 'stat-card-score' }
+        { key: 'courses-led', label: 'Courses Led', value: taughtCourses.length, icon: 'instructor', tone: 'stat-card-courses' },
+        { key: 'learners', label: 'Cohort Enrollments', value: cohortEnrollments.length, icon: 'enrollments', tone: 'stat-card-enrolled' },
+        { key: 'progress', label: 'Avg Cohort Progress', value: `${average(cohortProgress, 'completion_percentage').toFixed(1)}%`, icon: 'performance', tone: 'stat-card-progress' },
+        { key: 'score', label: 'Avg Cohort Score', value: cohortPerformance.length ? average(cohortPerformance, 'score').toFixed(1) : 'N/A', icon: 'certificate', tone: 'stat-card-score' }
       ],
       signals: [
         {
@@ -95,10 +96,10 @@ function buildDashboardModel(user, courses, enrollments, progress, performance) 
       },
       actions: roleActions.admin,
       stats: [
-        { key: 'catalog', label: 'Catalog Courses', value: courseCount, icon: '📚', tone: 'stat-card-courses' },
-        { key: 'enrollments', label: 'Enrollments', value: enrollments.length, icon: '🧭', tone: 'stat-card-enrolled' },
-        { key: 'progress', label: 'Overall Progress', value: `${overallProgress.toFixed(1)}%`, icon: '📈', tone: 'stat-card-progress' },
-        { key: 'score', label: 'Overall Score', value: performance.length ? overallScore.toFixed(1) : 'N/A', icon: '🏆', tone: 'stat-card-score' }
+        { key: 'catalog', label: 'Catalog Courses', value: courseCount, icon: 'courses', tone: 'stat-card-courses' },
+        { key: 'enrollments', label: 'Enrollments', value: enrollments.length, icon: 'enrollments', tone: 'stat-card-enrolled' },
+        { key: 'progress', label: 'Overall Progress', value: `${overallProgress.toFixed(1)}%`, icon: 'performance', tone: 'stat-card-progress' },
+        { key: 'score', label: 'Overall Score', value: performance.length ? overallScore.toFixed(1) : 'N/A', icon: 'certificate', tone: 'stat-card-score' }
       ],
       signals: [
         {
@@ -135,10 +136,10 @@ function buildDashboardModel(user, courses, enrollments, progress, performance) 
     },
     actions: roleActions.learner,
     stats: [
-      { key: 'catalog', label: 'Catalog Courses', value: courseCount, icon: '📚', tone: 'stat-card-courses' },
-      { key: 'enrolled', label: 'My Enrollments', value: myEnrollments.length, icon: '🎯', tone: 'stat-card-enrolled' },
-      { key: 'progress', label: 'Avg Progress', value: `${average(myProgress, 'completion_percentage').toFixed(1)}%`, icon: '📈', tone: 'stat-card-progress' },
-      { key: 'score', label: 'Avg Score', value: myPerformance.length ? average(myPerformance, 'score').toFixed(1) : 'N/A', icon: '🏆', tone: 'stat-card-score' }
+      { key: 'catalog', label: 'Catalog Courses', value: courseCount, icon: 'courses', tone: 'stat-card-courses' },
+      { key: 'enrolled', label: 'My Enrollments', value: myEnrollments.length, icon: 'enrollments', tone: 'stat-card-enrolled' },
+      { key: 'progress', label: 'Avg Progress', value: `${average(myProgress, 'completion_percentage').toFixed(1)}%`, icon: 'performance', tone: 'stat-card-progress' },
+      { key: 'score', label: 'Avg Score', value: myPerformance.length ? average(myPerformance, 'score').toFixed(1) : 'N/A', icon: 'certificate', tone: 'stat-card-score' }
     ],
     signals: [
       {
@@ -218,7 +219,7 @@ export default function Dashboard() {
       <div className="stats-grid">
         {dashboard.stats.map((stat) => (
           <div key={stat.key} className={`stat-card ${stat.tone}`}>
-            <div className="stat-icon">{stat.icon}</div>
+            <div className="stat-icon"><Icon name={stat.icon} size={22} /></div>
             <div className="stat-info">
               <span className="stat-value">{stat.value}</span>
               <span className="stat-label">{stat.label}</span>

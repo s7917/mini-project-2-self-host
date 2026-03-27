@@ -1,60 +1,139 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getCourseById } from '../services/courseService';
-import { getAllProgress, patchProgress, createProgress } from '../services/progressService';
+import { completeLessonSession, getAllProgress, getLessonState, startLessonSession } from '../services/progressService';
+import { buildModuleQuiz, getRecommendedVideos } from '../utils/courseMeta';
+import { downloadModulePdf } from '../utils/pdf';
 import ProgressBar from '../components/ProgressBar';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Icon from '../components/Icon';
 
 export default function LearningView() {
   const { courseId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [course, setCourse] = useState(null);
   const [progress, setProgress] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [activeLesson, setActiveLesson] = useState(null);
+  const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('success');
+  const [lessonAlert, setLessonAlert] = useState(null);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizResult, setQuizResult] = useState(null);
+  const topRef = useRef(null);
+  const quizRef = useRef(null);
+  const navRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
       try {
-        const courseRes = await getCourseById(courseId);
-        setCourse(courseRes.data.data);
-        const progRes = await getAllProgress();
-        const myProg = (progRes.data.data || []).find(p => p.user_id === user?.id && p.course_id === parseInt(courseId));
-        setProgress(myProg);
+        const [courseRes, progressRes, lessonStateRes] = await Promise.all([
+          getCourseById(courseId),
+          getAllProgress(),
+          getLessonState(courseId)
+        ]);
+
+        const courseData = courseRes.data.data;
+        setCourse(courseData);
+        setActiveLesson(courseData?.modules?.[0]?.lessons?.[0] || null);
+
+        const myProgress = (progressRes.data.data || []).find(
+          (item) => item.user_id === user?.id && item.course_id === parseInt(courseId, 10)
+        );
+        setProgress(myProgress || null);
+        setCompletedLessons(new Set(lessonStateRes.data.data?.completedLessonIds || []));
       } catch {} finally { setLoading(false); }
     };
+
     fetchData();
   }, [courseId, user]);
 
-  const totalLessons = course?.modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 1;
+  useEffect(() => {
+    if (!message) return;
+    const timeout = setTimeout(() => setMessage(''), 2600);
+    return () => clearTimeout(timeout);
+  }, [message]);
 
-  const markComplete = async (lessonId) => {
-    const newCompleted = new Set(completedLessons);
-    newCompleted.add(lessonId);
-    setCompletedLessons(newCompleted);
-    const newPct = Math.round((newCompleted.size / totalLessons) * 100);
+  useEffect(() => {
+    if (!activeLesson || user?.role !== 'learner') return;
+
+    startLessonSession(activeLesson.id, Number(courseId)).catch(() => {});
+  }, [activeLesson, courseId, user]);
+
+  const activeModule = course?.modules?.find((moduleItem) =>
+    moduleItem.lessons?.some((lesson) => lesson.id === activeLesson?.id)
+  );
+
+  const lessonSections = activeLesson?.content
+    ? activeLesson.content.split('\n\n').filter(Boolean)
+    : [];
+  const recommendedVideos = getRecommendedVideos(course, activeModule);
+  const moduleQuiz = buildModuleQuiz(activeModule);
+  const isModuleComplete = activeModule?.lessons?.every((lesson) => completedLessons.has(lesson.id));
+  const flattenedLessons = course?.modules?.flatMap((moduleItem) =>
+    (moduleItem.lessons || []).map((lesson) => ({
+      ...lesson,
+      module_id: moduleItem.id,
+      module_name: moduleItem.module_name
+    }))
+  ) || [];
+  const activeIndex = flattenedLessons.findIndex((lesson) => lesson.id === activeLesson?.id);
+  const nextLesson = activeIndex >= 0 ? flattenedLessons[activeIndex + 1] : null;
+  const lastLessonId = activeModule?.lessons?.length
+    ? activeModule.lessons[activeModule.lessons.length - 1].id
+    : null;
+  const isLastLessonInModule = lastLessonId === activeLesson?.id;
+  const quizAvailable = Boolean(isModuleComplete && isLastLessonInModule && moduleQuiz.length);
+  const quizPending = quizAvailable && !quizResult;
+
+  useEffect(() => {
+    setQuizAnswers({});
+    setQuizResult(null);
+  }, [activeModule?.id]);
+
+  const scrollToTop = () => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToQuiz = () => {
+    quizRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleMarkComplete = async () => {
     try {
-      if (progress) {
-        await patchProgress(progress.id, { completion_percentage: newPct });
-        setProgress({ ...progress, completion_percentage: newPct });
-      } else {
-        const res = await createProgress({ user_id: user.id, course_id: parseInt(courseId), completion_percentage: newPct });
-        setProgress(res.data.data);
-      }
-    } catch {}
+      const res = await completeLessonSession(activeLesson.id, Number(courseId));
+      setProgress(res.data.data.progress);
+      setCompletedLessons(new Set(res.data.data.completedLessonIds || []));
+      setMessageTone('success');
+      setMessage('Lesson marked complete.');
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Please spend more time in the lesson before marking it complete.';
+      setLessonAlert({
+        title: 'Keep learning to unlock completion',
+        message: errorMessage
+      });
+    }
+  };
+
+  const handleQuizSubmit = (event) => {
+    event.preventDefault();
+    const score = moduleQuiz.reduce((sum, question) => sum + (quizAnswers[question.id] === question.answer ? 1 : 0), 0);
+    setQuizResult({
+      score,
+      total: moduleQuiz.length
+    });
+    setTimeout(() => {
+      navRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
   };
 
   if (loading) return <LoadingSpinner />;
   if (!course) return <div className="page-container"><p>Course not found</p></div>;
-
-  const activeModule = course.modules?.find(module => module.lessons?.some(lesson => lesson.id === activeLesson?.id));
-  const lessonSections = activeLesson?.content
-    ? activeLesson.content.split('\n\n').filter(Boolean)
-    : [];
 
   return (
     <div className="learning-layout">
@@ -62,16 +141,18 @@ export default function LearningView() {
         <h2 className="sidebar-title">{course.title}</h2>
         <ProgressBar percentage={progress?.completion_percentage || 0} />
         <div className="module-tree">
-          {course.modules?.map(mod => (
-            <div key={mod.id} className="tree-module">
-              <h4 className="tree-module-name">{mod.module_name}</h4>
-              {mod.lessons?.map(lesson => (
+          {course.modules?.map((moduleItem) => (
+            <div key={moduleItem.id} className="tree-module">
+              <h4 className="tree-module-name">{moduleItem.module_name}</h4>
+              {moduleItem.lessons?.map((lesson) => (
                 <div
                   key={lesson.id}
                   className={`tree-lesson ${activeLesson?.id === lesson.id ? 'active' : ''} ${completedLessons.has(lesson.id) ? 'completed' : ''}`}
                   onClick={() => setActiveLesson(lesson)}
                 >
-                  <span className="tree-lesson-icon">{completedLessons.has(lesson.id) ? '✓' : '○'}</span>
+                  <span className="tree-lesson-icon">
+                    <Icon name={completedLessons.has(lesson.id) ? 'check' : 'document'} size={14} />
+                  </span>
                   {lesson.lesson_name}
                 </div>
               ))}
@@ -80,6 +161,7 @@ export default function LearningView() {
         </div>
       </div>
       <div className="learning-content">
+        <div ref={topRef}></div>
         {activeLesson ? (
           <>
             <div className="learning-content-head">
@@ -89,6 +171,16 @@ export default function LearningView() {
               </div>
               <span className="lesson-progress-chip">Course progress {progress?.completion_percentage || 0}%</span>
             </div>
+
+            {message && <div className={`toast ${messageTone === 'error' ? 'toast-error' : 'toast-success'}`}>{message}</div>}
+
+            <div className="learning-toolbar">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => downloadModulePdf(course, activeModule)}>
+                <Icon name="download" size={14} />
+                <span>Download Module PDF</span>
+              </button>
+            </div>
+
             <div className="content-body content-body-rich">
               {lessonSections.length > 0 ? (
                 lessonSections.map((section, index) => (
@@ -100,6 +192,7 @@ export default function LearningView() {
                 <p>No content available for this lesson.</p>
               )}
             </div>
+
             <div className="lesson-support-grid">
               <div className="lesson-support-card">
                 <span className="lesson-support-label">Study prompt</span>
@@ -110,12 +203,98 @@ export default function LearningView() {
                 <p>Before moving on, identify one team ritual, review step, or implementation task where this lesson should directly influence quality.</p>
               </div>
             </div>
+
+            <section className="video-resource-grid">
+              {recommendedVideos.map((video) => (
+                <article key={video.id || video.youtubeId} className="video-card">
+                  <div className="video-card-head">
+                    <Icon name="video" size={16} />
+                    <span>{video.title}</span>
+                  </div>
+                  <div className="video-embed-shell">
+                    <iframe
+                      src={video.embedUrl || `https://www.youtube.com/embed/${video.youtubeId}`}
+                      title={video.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </article>
+              ))}
+            </section>
+
             {!completedLessons.has(activeLesson.id) && (
-              <button className="btn btn-primary" onClick={() => markComplete(activeLesson.id)}>
-                ✓ Mark as Complete
+              <button className="btn btn-primary" onClick={handleMarkComplete}>
+                <Icon name="check" size={14} />
+                <span>Mark as Complete</span>
               </button>
             )}
-            {completedLessons.has(activeLesson.id) && <div className="completed-badge-lg">✓ Completed</div>}
+            {completedLessons.has(activeLesson.id) && (
+              <div className="completed-badge-lg">
+                <Icon name="check" size={14} />
+                <span>Completed</span>
+              </div>
+            )}
+
+            <div className="lesson-nav" ref={navRef}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={scrollToTop}>
+                <span>Back to top</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  if (quizPending) {
+                    scrollToQuiz();
+                    return;
+                  }
+                  if (nextLesson) {
+                    setActiveLesson(nextLesson);
+                    scrollToTop();
+                    return;
+                  }
+                  navigate('/my-courses');
+                }}
+              >
+                <span>{quizPending ? 'Go to Quiz' : nextLesson ? 'Next Lesson' : 'Back to My Courses'}</span>
+                <Icon name="arrowRight" size={14} />
+              </button>
+            </div>
+
+            {isModuleComplete && (
+              <section className="module-quiz-card" ref={quizRef}>
+                <div className="module-quiz-head">
+                  <h3>Module Quiz</h3>
+                  <span>Check your understanding before moving on.</span>
+                </div>
+                <form onSubmit={handleQuizSubmit} className="module-quiz-form">
+                  {moduleQuiz.map((question) => (
+                    <div key={question.id} className="module-quiz-item">
+                      <p>{question.prompt}</p>
+                      <div className="module-quiz-options">
+                        {question.options.map((option) => (
+                          <label key={option} className="quiz-option">
+                            <input
+                              type="radio"
+                              name={question.id}
+                              checked={quizAnswers[question.id] === option}
+                              onChange={() => setQuizAnswers((current) => ({ ...current, [question.id]: option }))}
+                            />
+                            <span>{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button type="submit" className="btn btn-primary btn-sm">Submit Quiz</button>
+                </form>
+                {quizResult && (
+                  <p className="quiz-result">
+                    You answered {quizResult.score} of {quizResult.total} correctly.
+                  </p>
+                )}
+              </section>
+            )}
           </>
         ) : (
           <div className="content-placeholder">
@@ -123,6 +302,24 @@ export default function LearningView() {
           </div>
         )}
       </div>
+      {lessonAlert && (
+        <div className="modal-overlay lesson-alert-overlay" onClick={() => setLessonAlert(null)}>
+          <div className="lesson-alert-card" onClick={(event) => event.stopPropagation()}>
+            <div className="lesson-alert-icon">
+              <Icon name="warning" size={22} />
+            </div>
+            <div className="lesson-alert-copy">
+              <h3>{lessonAlert.title}</h3>
+              <p>{lessonAlert.message}</p>
+            </div>
+            <div className="lesson-alert-actions">
+              <button type="button" className="btn btn-primary" onClick={() => setLessonAlert(null)}>
+                Continue Lesson
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

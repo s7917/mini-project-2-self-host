@@ -19,6 +19,8 @@ const lessonRoutes = require('./routes/lesson.routes');
 const enrollmentRoutes = require('./routes/enrollment.routes');
 const progressRoutes = require('./routes/progress.routes');
 const performanceRoutes = require('./routes/performance.routes');
+const approvalRoutes = require('./routes/approval.routes');
+const BootstrapService = require('./services/BootstrapService');
 
 const app = express();
 
@@ -37,6 +39,11 @@ app.use('/lessons', lessonRoutes);
 app.use('/enrollments', enrollmentRoutes);
 app.use('/progress', progressRoutes);
 app.use('/performance', performanceRoutes);
+app.use('/approvals', approvalRoutes);
+
+BootstrapService.ensureDemoAccounts()
+  .then(() => console.log('✅ Demo local accounts ready'))
+  .catch((err) => console.error('❌ Demo local account bootstrap failed:', err.message));
 
 // Health check
 app.get('/health', (req, res) => {

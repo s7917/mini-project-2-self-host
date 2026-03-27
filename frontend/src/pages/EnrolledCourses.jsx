@@ -6,6 +6,9 @@ import Pagination from '../components/Pagination';
 import ProgressBar from '../components/ProgressBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
+import Icon from '../components/Icon';
+import CertificateModal from '../components/CertificateModal';
+import { downloadCertificatePdf } from '../utils/pdf';
 
 const ENROLLMENTS_PER_PAGE = 6;
 
@@ -16,6 +19,7 @@ export default function EnrolledCourses() {
   const [progressMap, setProgressMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [certificateData, setCertificateData] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -51,6 +55,19 @@ export default function EnrolledCourses() {
 
   if (loading) return <LoadingSpinner />;
 
+  const handleCertificateOpen = (enrollment) => {
+    setCertificateData({
+      learnerName: user?.name || 'Learner',
+      courseTitle: enrollment.course_title,
+      completedDate: new Date().toLocaleDateString()
+    });
+  };
+
+  const handleCertificateDownload = () => {
+    if (!certificateData) return;
+    downloadCertificatePdf(certificateData);
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -72,7 +89,25 @@ export default function EnrolledCourses() {
                 <span className={`status-badge status-${e.status}`}>{e.status}</span>
               </div>
               <ProgressBar percentage={progressMap[e.course_id] || 0} />
-              <button className="btn btn-primary btn-sm">Continue Learning →</button>
+              <div className="enrolled-card-actions">
+                <button className="btn btn-primary btn-sm">
+                  <span>Continue Learning</span>
+                  <Icon name="arrowRight" size={14} />
+                </button>
+                {(e.status === 'completed' || Number(progressMap[e.course_id] || 0) >= 100) && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleCertificateOpen(e);
+                    }}
+                  >
+                    <Icon name="certificate" size={14} />
+                    <span>Certificate</span>
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           </div>
@@ -85,6 +120,11 @@ export default function EnrolledCourses() {
           />
         </>
       )}
+      <CertificateModal
+        certificate={certificateData}
+        onClose={() => setCertificateData(null)}
+        onDownload={handleCertificateDownload}
+      />
     </div>
   );
 }

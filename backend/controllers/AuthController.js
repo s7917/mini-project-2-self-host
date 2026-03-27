@@ -3,6 +3,8 @@ const { generateToken } = require('../utils/jwt');
 const { sendSuccess, sendError } = require('../utils/response');
 const LogService = require('../services/LogService');
 const UserService = require('../services/UserService');
+const AuthService = require('../services/AuthService');
+const BootstrapService = require('../services/BootstrapService');
 
 exports.githubAuth = passport.authenticate('github', { scope: ['user:email'] });
 
@@ -20,6 +22,35 @@ exports.githubCallback = (req, res, next) => {
       next(error);
     }
   })(req, res, next);
+};
+
+exports.localLogin = async (req, res, next) => {
+  try {
+    const data = await AuthService.localLogin(req.body);
+    await LogService.logAuth({ user_id: data.user.id, provider: 'local', status: 'success' });
+    sendSuccess(res, 200, data, 'Logged in successfully');
+  } catch (err) {
+    await LogService.logAuth({ user_id: null, provider: 'local', status: 'failure' }).catch(() => {});
+    next(err);
+  }
+};
+
+exports.localSignup = async (req, res, next) => {
+  try {
+    const data = await AuthService.signup(req.body);
+    sendSuccess(
+      res,
+      data.requiresApproval ? 202 : 201,
+      data,
+      data.message || 'Account created successfully'
+    );
+  } catch (err) { next(err); }
+};
+
+exports.demoUsers = async (req, res, next) => {
+  try {
+    sendSuccess(res, 200, BootstrapService.getDemoAccounts());
+  } catch (err) { next(err); }
 };
 
 exports.getMe = async (req, res, next) => {
