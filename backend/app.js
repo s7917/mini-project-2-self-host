@@ -41,6 +41,10 @@ app.use('/performance', performanceRoutes);
 app.use('/approvals', approvalRoutes);
 app.use('/quizzes', quizRoutes);
 
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ success: true, message: 'Server is running', timestamp: new Date() });
