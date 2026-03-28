@@ -25,10 +25,10 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || '0.0.0.0',
+  host: process.env.MYSQL_HOST || 'localhost',
   port: parseInt(process.env.MYSQL_PORT) || 3306,
-  user: process.env.MYSQL_USER || 'dummy',
-  password: process.env.MYSQL_PASSWORD || 'dummy',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
   database: process.env.MYSQL_DATABASE || 'edtech_db',
   waitForConnections: true,
   connectionLimit: 10,
