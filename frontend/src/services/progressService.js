@@ -9,3 +9,4 @@ export const deleteProgress = (id) => api.delete(`/progress/${id}`);
 export const getLessonState = (courseId) => api.get(`/progress/course/${courseId}/lesson-state`);
 export const startLessonSession = (lessonId, course_id) => api.post(`/progress/lessons/${lessonId}/start`, { course_id });
 export const completeLessonSession = (lessonId, course_id) => api.post(`/progress/lessons/${lessonId}/complete`, { course_id });
+export const uncompleteLessons = (lessonIds, course_id) => api.post('/progress/lessons/uncomplete-module', { lessonIds, course_id });

@@ -17,19 +17,19 @@ class Lesson {
   }
 
   static async create(data) {
-    const { module_id, lesson_name, content } = data;
+    const { module_id, lesson_name, content, video_url } = data;
     const [result] = await pool.query(
-      'INSERT INTO lessons (module_id, lesson_name, content) VALUES (?, ?, ?)',
-      [module_id, lesson_name, content]
+      'INSERT INTO lessons (module_id, lesson_name, content, video_url) VALUES (?, ?, ?, ?)',
+      [module_id, lesson_name, content, video_url || null]
     );
     return this.findById(result.insertId);
   }
 
   static async update(id, data) {
-    const { module_id, lesson_name, content } = data;
+    const { module_id, lesson_name, content, video_url } = data;
     await pool.query(
-      'UPDATE lessons SET module_id = ?, lesson_name = ?, content = ? WHERE id = ?',
-      [module_id, lesson_name, content, id]
+      'UPDATE lessons SET module_id = ?, lesson_name = ?, content = ?, video_url = ? WHERE id = ?',
+      [module_id, lesson_name, content, video_url || null, id]
     );
     return this.findById(id);
   }
@@ -40,6 +40,7 @@ class Lesson {
     if (data.module_id !== undefined) { fields.push('module_id = ?'); values.push(data.module_id); }
     if (data.lesson_name !== undefined) { fields.push('lesson_name = ?'); values.push(data.lesson_name); }
     if (data.content !== undefined) { fields.push('content = ?'); values.push(data.content); }
+    if (data.video_url !== undefined) { fields.push('video_url = ?'); values.push(data.video_url || null); }
     if (fields.length === 0) return this.findById(id);
     values.push(id);
     await pool.query(`UPDATE lessons SET ${fields.join(', ')} WHERE id = ?`, values);

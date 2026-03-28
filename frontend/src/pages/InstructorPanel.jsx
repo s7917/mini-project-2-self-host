@@ -186,7 +186,7 @@ export default function InstructorPanel() {
   const createEmptyQuestion = (index) => ({
     id: `q-${Date.now()}-${index}`,
     prompt: '',
-    options: ['Option 1', 'Option 2'],
+    options: ['', '', '', ''],
     answer: ''
   });
 
@@ -197,12 +197,16 @@ export default function InstructorPanel() {
       : [createEmptyQuestion(0)];
     setQuizDraft({
       title: existingQuiz?.title || `${moduleItem.module_name} Quiz`,
-      questions: initialQuestions.map((question, index) => ({
-        id: question.id || `q-${moduleItem.id}-${index}`,
-        prompt: question.prompt || '',
-        options: question.options || [],
-        answer: question.answer || ''
-      }))
+      questions: initialQuestions.map((question, index) => {
+        const opts = question.options || [];
+        const padded = [...opts, '', '', '', ''].slice(0, 4);
+        return {
+          id: question.id || `q-${moduleItem.id}-${index}`,
+          prompt: question.prompt || '',
+          options: padded,
+          answer: question.answer || ''
+        };
+      })
     });
     setQuizModal({ moduleId: moduleItem.id, moduleName: moduleItem.module_name });
   };
@@ -218,14 +222,18 @@ export default function InstructorPanel() {
     setQuizDraft((current) => {
       const questions = current.questions.map((question, questionIndex) => {
         if (questionIndex !== index) return question;
-        if (field === 'options') {
-          const options = value
-            .split(',')
-            .map((option) => option.trim())
-            .filter(Boolean);
-          return { ...question, options };
-        }
         return { ...question, [field]: value };
+      });
+      return { ...current, questions };
+    });
+  };
+
+  const updateQuizOption = (questionIndex, optionIndex, value) => {
+    setQuizDraft((current) => {
+      const questions = current.questions.map((question, qi) => {
+        if (qi !== questionIndex) return question;
+        const options = question.options.map((opt, oi) => oi === optionIndex ? value : opt);
+        return { ...question, options };
       });
       return { ...current, questions };
     });
@@ -252,7 +260,7 @@ export default function InstructorPanel() {
     const normalizedQuestions = quizDraft.questions.map((question, index) => ({
       id: question.id || `${quizModal.moduleId}-q${index + 1}`,
       prompt: question.prompt.trim(),
-      options: (question.options || []).map((option) => option.trim()).filter(Boolean),
+      options: (question.options || []).map((o) => o.trim()).filter(Boolean),
       answer: question.answer.trim()
     }));
 
@@ -446,9 +454,23 @@ export default function InstructorPanel() {
                   <div className="lesson-admin-list">
                     {moduleItem.lessons?.map((lesson) => (
                       <div key={lesson.id} className="lesson-admin-card">
-                        <div>
-                          <strong>{lesson.lesson_name}</strong>
-                          <p>{lesson.content?.slice(0, 160) || 'No lesson content yet.'}</p>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <strong>{lesson.lesson_name}</strong>
+                            {lesson.video_url && (
+                              <a
+                                href={lesson.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#6366f1', background: '#ede9fe', borderRadius: '4px', padding: '2px 8px', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                              >
+                                ▶ Video
+                              </a>
+                            )}
+                          </div>
+                          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {lesson.content?.slice(0, 160) || 'No lesson content yet.'}
+                          </p>
                         </div>
                         <div className="instructor-actions">
                           <button className="btn btn-ghost btn-xs" onClick={() => setLessonModal({ ...lesson, moduleId: moduleItem.id })}>Edit</button>
@@ -521,6 +543,16 @@ export default function InstructorPanel() {
                 <label className="form-label">Content</label>
                 <textarea name="content" className="form-input form-textarea" defaultValue={lessonModal?.content || ''}></textarea>
               </div>
+              <div className="form-group">
+                <label className="form-label">Video URL (YouTube or MP4 link)</label>
+                <input
+                  name="video_url"
+                  className="form-input"
+                  defaultValue={lessonModal?.video_url || ''}
+                  placeholder="https://www.youtube.com/watch?v=... or https://...mp4"
+                />
+                <span className="form-hint">Paste a YouTube link or direct MP4 URL. Leave blank if no video.</span>
+              </div>
               <div className="modal-actions">
                 <button type="submit" className="btn btn-primary">Submit</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setLessonModal(null)}>Cancel</button>
@@ -532,21 +564,30 @@ export default function InstructorPanel() {
 
       {quizModal !== null && quizDraft && (
         <div className="modal-overlay" onClick={() => { setQuizModal(null); setQuizDraft(null); }}>
-          <div className="modal-card modal-card-wide" onClick={(event) => event.stopPropagation()}>
-            <h3>{moduleQuizzes[quizModal.moduleId] ? 'Edit' : 'Add'} Quiz for {quizModal.moduleName}</h3>
-            <form onSubmit={handleSaveQuiz} className="quiz-editor">
-              <div className="form-group">
-                <label className="form-label">Quiz Title</label>
-                <input
-                  className="form-input"
-                  value={quizDraft.title}
-                  onChange={(event) => updateQuizField('title', event.target.value)}
-                  required
-                />
-              </div>
-              <div className="quiz-editor-list">
+          <div
+            className="modal-card modal-card-wide"
+            onClick={(event) => event.stopPropagation()}
+            style={{ display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden' }}
+          >
+            <div style={{ padding: '0 0 12px 0', flexShrink: 0 }}>
+              <h3 style={{ margin: 0 }}>{moduleQuizzes[quizModal.moduleId] ? 'Edit' : 'Add'} Quiz — {quizModal.moduleName}</h3>
+            </div>
+            <form
+              onSubmit={handleSaveQuiz}
+              style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+            >
+              <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                <div className="form-group">
+                  <label className="form-label">Quiz Title</label>
+                  <input
+                    className="form-input"
+                    value={quizDraft.title}
+                    onChange={(event) => updateQuizField('title', event.target.value)}
+                    required
+                  />
+                </div>
                 {quizDraft.questions.map((question, index) => (
-                  <div key={question.id || index} className="quiz-edit-card">
+                  <div key={index} className="quiz-edit-card" style={{ marginBottom: '16px' }}>
                     <div className="quiz-edit-head">
                       <strong>Question {index + 1}</strong>
                       {quizDraft.questions.length > 1 && (
@@ -565,34 +606,44 @@ export default function InstructorPanel() {
                       />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Options (comma separated)</label>
-                      <input
-                        className="form-input"
-                        value={(question.options || []).join(', ')}
-                        onChange={(event) => updateQuizQuestion(index, 'options', event.target.value)}
-                        required
-                      />
+                      <label className="form-label">Option 1 <span style={{color:'red'}}>*</span></label>
+                      <input className="form-input" value={question.options[0] || ''} onChange={(e) => updateQuizOption(index, 0, e.target.value)} placeholder="Option 1" required />
                     </div>
                     <div className="form-group">
-                      <label className="form-label">Correct Answer</label>
-                      <input
+                      <label className="form-label">Option 2 <span style={{color:'red'}}>*</span></label>
+                      <input className="form-input" value={question.options[1] || ''} onChange={(e) => updateQuizOption(index, 1, e.target.value)} placeholder="Option 2" required />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Option 3</label>
+                      <input className="form-input" value={question.options[2] || ''} onChange={(e) => updateQuizOption(index, 2, e.target.value)} placeholder="Option 3 (optional)" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Option 4</label>
+                      <input className="form-input" value={question.options[3] || ''} onChange={(e) => updateQuizOption(index, 3, e.target.value)} placeholder="Option 4 (optional)" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Correct Answer <span style={{color:'red'}}>*</span></label>
+                      <select
                         className="form-input"
                         value={question.answer}
-                        onChange={(event) => updateQuizQuestion(index, 'answer', event.target.value)}
+                        onChange={(e) => updateQuizQuestion(index, 'answer', e.target.value)}
                         required
-                      />
+                      >
+                        <option value="">Select correct answer</option>
+                        {question.options.filter(Boolean).map((opt, oi) => (
+                          <option key={oi} value={opt}>{opt}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 ))}
+                <button type="button" className="btn btn-ghost btn-sm" onClick={addQuizQuestion} style={{ marginBottom: '12px' }}>
+                  + Add Question
+                </button>
               </div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={addQuizQuestion}>
-                Add Question
-              </button>
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ flexShrink: 0, borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: '12px', marginTop: '8px' }}>
                 {moduleQuizzes[quizModal.moduleId] && (
-                  <button type="button" className="btn btn-danger" onClick={handleDeleteQuiz}>
-                    Remove Quiz
-                  </button>
+                  <button type="button" className="btn btn-danger" onClick={handleDeleteQuiz}>Remove Quiz</button>
                 )}
                 <button type="submit" className="btn btn-primary">Save Quiz</button>
                 <button type="button" className="btn btn-ghost" onClick={() => { setQuizModal(null); setQuizDraft(null); }}>Cancel</button>

@@ -42,6 +42,34 @@ class ProgressService {
     return { started: true };
   }
 
+  static async uncompleteLessons(userId, courseId, lessonIds) {
+    // delete all 'complete' events for these lessons
+    await LearningEvent.deleteMany({
+      user_id: userId,
+      course_id: courseId,
+      lesson_id: { $in: lessonIds },
+      action: 'complete'
+    });
+
+    // recalculate progress
+    const course = await CourseRepository.findByIdWithModules(courseId);
+    const totalLessons = course?.modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 1;
+    const { completedLessonIds } = await this.getLessonState(userId, courseId);
+    const completionPercentage = Math.min(100, Math.round((completedLessonIds.length / totalLessons) * 100));
+
+    let progress = await ProgressRepository.findByUserAndCourse(userId, courseId);
+    if (progress) {
+      progress = await ProgressRepository.patch(progress.id, { completion_percentage: completionPercentage });
+    }
+
+    const enrollment = await EnrollmentRepository.findByUserAndCourse(userId, courseId);
+    if (enrollment) {
+      await EnrollmentRepository.patch(enrollment.id, { status: completionPercentage >= 100 ? 'completed' : 'active' });
+    }
+
+    return { progress, completedLessonIds };
+  }
+
   static async completeLesson(userId, courseId, lessonId) {
     const lesson = await LessonRepository.findById(lessonId);
     if (!lesson) {

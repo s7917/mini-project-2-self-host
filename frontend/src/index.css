@@ -836,6 +836,13 @@ html[data-theme='dark'] .global-back-btn {
 .tree-lesson.completed { color: var(--success); }
 .tree-lesson-icon { font-size: 0.7rem; }
 
+.learning-sidebar {
+  overflow-y: auto;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+}
+
 .learning-content {
   padding: 2.5rem;
   max-width: 800px;

@@ -96,6 +96,16 @@ exports.startLessonSession = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+exports.uncompleteLessons = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'learner') return sendError(res, 403, 'Only learners can uncomplete lessons');
+    const { lessonIds, course_id } = req.body;
+    if (!Array.isArray(lessonIds) || !course_id) return sendError(res, 400, 'lessonIds and course_id required');
+    const data = await ProgressService.uncompleteLessons(req.user.sub, Number(course_id), lessonIds);
+    sendSuccess(res, 200, data, 'Lessons marked incomplete');
+  } catch (err) { next(err); }
+};
+
 exports.completeLesson = async (req, res, next) => {
   try {
     if (req.user.role !== 'learner') return sendError(res, 403, 'Only learners can complete lessons');
