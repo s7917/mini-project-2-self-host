@@ -7,6 +7,7 @@ import useToast from '../hooks/useToast';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { getApprovals } from '../services/approvalService';
 import { deleteModuleQuiz, getCourseQuizzes, getQuizSubmissions, upsertModuleQuiz } from '../services/quizService';
+import InstructorHelpBot from '../components/InstructorHelpBot';
 
 export default function InstructorPanel() {
   const { user } = useAuth();
@@ -446,8 +447,8 @@ export default function InstructorPanel() {
               </div>
 
               {isOpen && (
-                <div style={{ marginTop: '12px' }}>
-                  <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ courseId: course.id })}>Add Module</button>
+                <div className="instructor-course-body">
+                  <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ courseId: course.id })}>+ Add Module</button>
                   <div className="module-admin-list" style={{ marginTop: '10px' }}>
                     {course.modules?.map((moduleItem) => {
                       const isModuleOpen = !!expandedModules[moduleItem.id];
@@ -701,6 +702,24 @@ export default function InstructorPanel() {
           cancelLabel="Cancel"
         />
       )}
+
+      <InstructorHelpBot
+        onUseTitles={(title) => setEditModal((prev) => prev !== null ? { ...prev, title } : { title })}
+        onUseQuiz={(q) => {
+          setQuizDraft((prev) => {
+            if (!prev) {
+              showToast('Please open a module\'s quiz first, then use questions from the bot.', 'info');
+              return null;
+            }
+            const already = prev.questions.find((x) => x.prompt === q.prompt);
+            if (already) { showToast('This question is already added.', 'info'); return prev; }
+            const opts = (q.options || []).filter(Boolean);
+            const padded = [...opts, '', '', '', ''].slice(0, 4);
+            const newQ = { id: `q-${Date.now()}`, prompt: q.prompt, options: padded, answer: q.answer };
+            return { ...prev, questions: [...prev.questions.filter((x) => x.prompt !== ''), newQ] };
+          });
+        }}
+      />
     </div>
   );
 }
