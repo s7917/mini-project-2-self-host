@@ -24,6 +24,10 @@ export default function InstructorPanel() {
   const [quizModal, setQuizModal] = useState(null);
   const [quizDraft, setQuizDraft] = useState(null);
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [expandedCourses, setExpandedCourses] = useState({});
+  const [expandedModules, setExpandedModules] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const COURSES_PER_PAGE = 3;
 
   usePageTitle('Instructor Panel');
 
@@ -316,6 +320,12 @@ export default function InstructorPanel() {
   const getCourseProgress = (courseId) => progressRecords.filter((item) => item.course_id === courseId);
   const getCourseQuizSubmissions = (courseId) => quizSubmissions.filter((item) => item.course_id === courseId);
 
+  const toggleCourse = (id) => setExpandedCourses((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleModule = (id) => setExpandedModules((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const totalPages = Math.ceil(courses.length / COURSES_PER_PAGE);
+  const pagedCourses = courses.slice((currentPage - 1) * COURSES_PER_PAGE, currentPage * COURSES_PER_PAGE);
+
   return (
     <div className="page-container">
       <div className="page-header">
@@ -417,73 +427,102 @@ export default function InstructorPanel() {
 
       <div className="instructor-courses">
         {courses.length === 0 && <p className="empty-state">No approved courses yet. Submit your first course request to get started.</p>}
-        {courses.map((course) => (
-          <div key={course.id} className="instructor-course-card">
-            <div className="instructor-course-header">
-              <div>
-                <h3>{course.title}</h3>
-                <p className="course-desc-sm">{course.description}</p>
+        {pagedCourses.map((course) => {
+          const isOpen = !!expandedCourses[course.id];
+          return (
+            <div key={course.id} className="instructor-course-card">
+              <div className="instructor-course-header" style={{ cursor: 'pointer' }} onClick={() => toggleCourse(course.id)}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: 0 }}>{course.title}</h3>
+                  {!isOpen && <p className="course-desc-sm" style={{ margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{course.description}</p>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="instructor-actions" onClick={(e) => e.stopPropagation()}>
+                    <button className="btn btn-ghost btn-xs" onClick={() => setEditModal(course)}>Edit</button>
+                    <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'courses', id: course.id })}>Delete</button>
+                  </div>
+                  <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>{isOpen ? '▲' : '▼'}</span>
+                </div>
               </div>
-              <div className="instructor-actions">
-                <button className="btn btn-ghost btn-xs" onClick={() => setEditModal(course)}>Edit</button>
-                <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'courses', id: course.id })}>Delete</button>
-              </div>
-            </div>
-            <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ courseId: course.id })}>Add Module</button>
 
-            <div className="module-admin-list">
-              {course.modules?.map((moduleItem) => (
-                <div key={moduleItem.id} className="module-admin-card">
-                  <div className="module-admin-head">
-                    <div>
-                      <h4>{moduleItem.module_name}</h4>
-                      <span>Sequence {moduleItem.sequence_order}</span>
-                    </div>
-                    <div className="instructor-actions">
-                      <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ ...moduleItem, courseId: course.id })}>Edit</button>
-                      <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'modules', id: moduleItem.id })}>Delete</button>
-                    </div>
-                  </div>
-                  <div className="module-admin-actions">
-                    <button className="btn btn-ghost btn-xs" onClick={() => setLessonModal({ moduleId: moduleItem.id })}>Add Lesson</button>
-                    <button className="btn btn-ghost btn-xs" onClick={() => openQuizModal(moduleItem)}>
-                      {moduleQuizzes[moduleItem.id] ? 'Edit Quiz' : 'Add Quiz'}
-                    </button>
-                    {moduleQuizzes[moduleItem.id] && <span className="quiz-badge">Quiz ready</span>}
-                  </div>
-                  <div className="lesson-admin-list">
-                    {moduleItem.lessons?.map((lesson) => (
-                      <div key={lesson.id} className="lesson-admin-card">
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <strong>{lesson.lesson_name}</strong>
-                            {lesson.video_url && (
-                              <a
-                                href={lesson.video_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#6366f1', background: '#ede9fe', borderRadius: '4px', padding: '2px 8px', textDecoration: 'none', whiteSpace: 'nowrap' }}
-                              >
-                                ▶ Video
-                              </a>
-                            )}
+              {isOpen && (
+                <div style={{ marginTop: '12px' }}>
+                  <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ courseId: course.id })}>Add Module</button>
+                  <div className="module-admin-list" style={{ marginTop: '10px' }}>
+                    {course.modules?.map((moduleItem) => {
+                      const isModuleOpen = !!expandedModules[moduleItem.id];
+                      return (
+                        <div key={moduleItem.id} className="module-admin-card">
+                          <div className="module-admin-head" style={{ cursor: 'pointer' }} onClick={() => toggleModule(moduleItem.id)}>
+                            <div>
+                              <h4 style={{ margin: 0 }}>{moduleItem.module_name}</h4>
+                              <span>Sequence {moduleItem.sequence_order}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div className="instructor-actions" onClick={(e) => e.stopPropagation()}>
+                                <button className="btn btn-ghost btn-xs" onClick={() => setModuleModal({ ...moduleItem, courseId: course.id })}>Edit</button>
+                                <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'modules', id: moduleItem.id })}>Delete</button>
+                              </div>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{isModuleOpen ? '▲' : '▼'}</span>
+                            </div>
                           </div>
-                          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {lesson.content?.slice(0, 160) || 'No lesson content yet.'}
-                          </p>
+                          {isModuleOpen && (
+                            <>
+                              <div className="module-admin-actions">
+                                <button className="btn btn-ghost btn-xs" onClick={() => setLessonModal({ moduleId: moduleItem.id })}>Add Lesson</button>
+                                <button className="btn btn-ghost btn-xs" onClick={() => openQuizModal(moduleItem)}>
+                                  {moduleQuizzes[moduleItem.id] ? 'Edit Quiz' : 'Add Quiz'}
+                                </button>
+                                {moduleQuizzes[moduleItem.id] && <span className="quiz-badge">Quiz ready</span>}
+                              </div>
+                              <div className="lesson-admin-list">
+                                {moduleItem.lessons?.map((lesson) => (
+                                  <div key={lesson.id} className="lesson-admin-card">
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <strong>{lesson.lesson_name}</strong>
+                                        {lesson.video_url && (
+                                          <a href={lesson.video_url} target="_blank" rel="noopener noreferrer"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#6366f1', background: '#ede9fe', borderRadius: '4px', padding: '2px 8px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                            ▶ Video
+                                          </a>
+                                        )}
+                                      </div>
+                                      <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {lesson.content?.slice(0, 160) || 'No lesson content yet.'}
+                                      </p>
+                                    </div>
+                                    <div className="instructor-actions">
+                                      <button className="btn btn-ghost btn-xs" onClick={() => setLessonModal({ ...lesson, moduleId: moduleItem.id })}>Edit</button>
+                                      <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'lessons', id: lesson.id })}>Delete</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <div className="instructor-actions">
-                          <button className="btn btn-ghost btn-xs" onClick={() => setLessonModal({ ...lesson, moduleId: moduleItem.id })}>Edit</button>
-                          <button className="btn btn-danger btn-xs" onClick={() => setConfirmTarget({ type: 'lessons', id: lesson.id })}>Delete</button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
+              )}
+            </div>
+          );
+        })}
+
+        {totalPages > 1 && (
+          <div className="pagination-shell" style={{ marginTop: '1rem' }}>
+            <p className="pagination-summary">Page {currentPage} of {totalPages}</p>
+            <div className="pagination-controls">
+              <button className="pagination-btn" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>‹ Prev</button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button key={i + 1} className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`} onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
               ))}
+              <button className="pagination-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>Next ›</button>
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       {editModal !== null && (
